@@ -52,6 +52,10 @@ public class User {
   private String address;
   private String description;
   private String possition;
+  private String imageProfile;
+  private String urlProfile;
+  private String sampulImage;
+  private String sampulUrl;
 
   @ManyToMany(fetch = FetchType.EAGER)
   @JoinTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "role_id"))
