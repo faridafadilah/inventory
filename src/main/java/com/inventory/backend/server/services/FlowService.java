@@ -1,11 +1,20 @@
 package com.inventory.backend.server.services;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import com.inventory.backend.server.base.BasePageInterface;
 import com.inventory.backend.server.base.ResponAPI;
 import com.inventory.backend.server.constant.ErrorCode;
 import com.inventory.backend.server.constant.ErrorCodeApi;
@@ -16,11 +25,15 @@ import com.inventory.backend.server.model.Flow;
 import com.inventory.backend.server.model.ListBarang;
 import com.inventory.backend.server.repository.BarangRepository;
 import com.inventory.backend.server.repository.FlowRepository;
+import com.inventory.backend.server.specification.FlowSpecification;
 
 @Service
-public class FlowService {
+public class FlowService implements BasePageInterface<Flow, FlowSpecification, FlowResponse, Long> {
   @Autowired
   private FlowRepository repository;
+
+  @Autowired
+  private FlowSpecification specification;
 
   @Autowired
   private BarangRepository barangRepository;
@@ -144,6 +157,48 @@ public class FlowService {
       return false;
     }
     return true;
+  }
+
+  public boolean getFlowById(ResponAPI<FlowResponse> responAPI, Long id) {
+    Optional<Flow> flowOp = repository.findById(id);
+    if (!flowOp.isPresent()) {
+      responAPI.setErrorMessage("Transaction not found!");
+      return false;
+    }
+
+    try {
+      FlowResponse response = FlowResponse.getInstance(flowOp.get());
+      responAPI.setData(response);
+      responAPI.setErrorCode(ErrorCode.SUCCESS);
+      responAPI.setErrorMessage("Success Delete Transaction");
+    } catch (Exception e) {
+      responAPI.setErrorCode(ErrorCodeApi.FAILED);
+      responAPI.setErrorMessage(e.getMessage());
+      return false;
+    }
+    return true;
+  }
+
+  public Page<FlowResponse> getAllFlows(String search, Integer page, Integer limit) {
+    List<String> sortBy = Arrays.asList("id");
+    boolean desc = true;
+    Pageable pageableRequest = this.defaultPage(search, page, limit, sortBy, desc);
+    Page<Flow> settingPage = repository.findAll(this.defaultSpec(search, specification), pageableRequest);
+    List<Flow> mains = settingPage.getContent();
+    List<FlowResponse> responseList = new ArrayList<>();
+    mains.stream().forEach(a -> {
+      responseList.add(FlowResponse.getInstance(a));
+    });
+    Page<FlowResponse> response = new PageImpl<>(responseList, pageableRequest, settingPage.getTotalElements());
+    return response;
+  }
+
+  public Page<FlowResponse> getAllFlowsByIdBarang(Integer page, Integer limit, Long id) {
+    Pageable pageable = PageRequest.of(page, limit);
+    Page<Flow> settinPage =repository.findAll(specification.barangEqual(id), pageable);
+    List<FlowResponse> response = settinPage.getContent().stream().map(FlowResponse::getInstance)
+    .collect(Collectors.toList());
+    return new PageImpl<>(response, pageable, settinPage.getTotalElements());
   }
 
 }

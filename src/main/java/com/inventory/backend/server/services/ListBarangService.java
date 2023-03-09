@@ -2,29 +2,34 @@ package com.inventory.backend.server.services;
 
 import java.io.File;
 import java.nio.file.*;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.inventory.backend.server.base.BasePageInterface;
 import com.inventory.backend.server.base.ResponAPI;
 import com.inventory.backend.server.constant.ErrorCode;
 import com.inventory.backend.server.constant.ErrorCodeApi;
 import com.inventory.backend.server.constant.MessageApi;
 import com.inventory.backend.server.dto.request.BarangRequest;
-import com.inventory.backend.server.dto.response.CategoryResponse;
-import com.inventory.backend.server.dto.response.ListBarangResponse;
-import com.inventory.backend.server.dto.response.SuplierResponse;
+import com.inventory.backend.server.dto.response.*;
 import com.inventory.backend.server.model.*;
 import com.inventory.backend.server.repository.*;
+import com.inventory.backend.server.specification.BarangSpecification;
 
 @Service
-public class ListBarangService {
+public class ListBarangService implements BasePageInterface<ListBarang, BarangSpecification, ListBarangResponse, Long> {
 
   @Autowired
   private BarangRepository repository;
@@ -38,6 +43,9 @@ public class ListBarangService {
   @Autowired
   private UserRepository userRepository;
   private ModelMapper objectMapper = new ModelMapper();
+
+  @Autowired
+  private BarangSpecification specification;
 
   public boolean createListBarang(BarangRequest req, ResponAPI<ListBarangResponse> responAPI, MultipartFile file) {
     Optional<ListBarang> barangOptional = repository.findByName(req.getName());
@@ -198,6 +206,62 @@ public class ListBarangService {
       repository.delete(barang);
       
       responAPI.setErrorCode(ErrorCode.SUCCESS);
+    } catch (Exception e) {
+      responAPI.setErrorCode(ErrorCodeApi.FAILED);
+      responAPI.setErrorMessage(e.getMessage());
+      return false;
+    }
+    return true;
+  }
+
+  public Page<DtoResListBarang> getAllBarang(String search, Integer page, Integer limit) {
+    List<String> sortBy = Arrays.asList("id");
+    boolean desc = true;
+    Pageable pageableRequest = this.defaultPage(search, page, limit, sortBy, desc);
+    Page<ListBarang> settingPage = repository.findAll(this.defaultSpec(search, specification), pageableRequest);
+    List<ListBarang> mains = settingPage.getContent();
+    List<DtoResListBarang> responseList = new ArrayList<>();
+    mains.stream().forEach(a -> {
+      responseList.add(DtoResListBarang.getInstance(a));
+    });
+    Page<DtoResListBarang> response = new PageImpl<>(responseList, pageableRequest, settingPage.getTotalElements());
+    return response;
+  }
+
+  public boolean getBarangDetail(ResponAPI<ListBarangResponse> responAPI, Long id) {
+    Optional<ListBarang> barangOp = repository.findById(id);
+    if (!barangOp.isPresent()) {
+      responAPI.setErrorMessage("Barang with id not found!");
+      return false;
+    }
+    try {
+      ListBarangResponse response = ListBarangResponse.getInstance(barangOp.get());
+      responAPI.setData(response);
+      responAPI.setErrorCode(ErrorCode.SUCCESS);
+    } catch (Exception e) {
+      responAPI.setErrorCode(ErrorCodeApi.FAILED);
+      responAPI.setErrorMessage(e.getMessage());
+      return false;
+    }
+    return true;
+  }
+
+  public boolean getAllLength(ResponAPI<SizeAllResponse> responAPI) {
+    try {
+      List<ListBarang> listBarangs = repository.findAll();
+      List<Suplier> supliers = suplierRepository.findAll();
+      List<Category> categories = categoryRepository.findAll();
+      List<User> users = userRepository.findAll();
+
+      SizeAllResponse response = new SizeAllResponse();
+      response.setProductDataBarang(listBarangs.size());
+      response.setProductCategory(categories.size());
+      response.setProductSuplier(supliers.size());
+      response.setProductUser(users.size());
+
+      responAPI.setData(response);
+      responAPI.setErrorCode(ErrorCodeApi.SUCCESS);
+      responAPI.setErrorMessage(MessageApi.SUCCESS);
     } catch (Exception e) {
       responAPI.setErrorCode(ErrorCodeApi.FAILED);
       responAPI.setErrorMessage(e.getMessage());
