@@ -20,11 +20,10 @@ public class Logging {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  private String statusCode;
+  private int statusCode;
   private String error;
   private String method;
   private String url;
   private String date;
   private String username;
-  private String userId;
 }

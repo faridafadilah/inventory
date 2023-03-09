@@ -82,7 +82,8 @@ public class ProfileService {
 
         user.setUrlProfile(url);
         user.setImageProfile(uniqueFilename);
-      } else if (sampul != null && !sampul.isEmpty()) {
+      }
+      if (sampul != null && !sampul.isEmpty()) {
         if (sampulImage != null) {
           Path oldFile = roots.resolve(sampulImage);
           Files.deleteIfExists(oldFile);
