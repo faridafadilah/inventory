@@ -2,24 +2,30 @@ package com.inventory.backend.server.controller;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.inventory.backend.server.base.ResponAPI;
+import com.inventory.backend.server.constant.ErrorCode;
 import com.inventory.backend.server.dto.request.AdminRequest;
 import com.inventory.backend.server.dto.request.LoginRequest;
+import com.inventory.backend.server.dto.response.DtoResResetPassword;
 import com.inventory.backend.server.dto.response.JwtResponse;
 import com.inventory.backend.server.dto.response.MessageResponse;
 import com.inventory.backend.server.model.ERole;
@@ -29,8 +35,9 @@ import com.inventory.backend.server.repository.RoleRepository;
 import com.inventory.backend.server.repository.UserRepository;
 import com.inventory.backend.server.security.jwt.JwtUtils;
 import com.inventory.backend.server.security.services.UserDetailslmpl;
+import com.inventory.backend.server.services.AuthService;
 
-
+@CrossOrigin("*")
 @RestController
 public class AuthController {
   @Autowired
@@ -47,6 +54,9 @@ public class AuthController {
 
   @Autowired
   JwtUtils jwtUtils;
+
+  @Autowired
+  AuthService service;
 
   @PostMapping("/signin")
   public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
@@ -115,6 +125,26 @@ public class AuthController {
     userRepository.save(user);
 
     return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
+  }
+
+  @PostMapping("/reset-password")
+  public ResponseEntity<ResponAPI<String>> resetPassword(@RequestBody Map<String, Object> request) {
+    ResponAPI<String> responseMessage = new ResponAPI<>();
+    if(!service.resetPassword(responseMessage, request.get("token").toString(), request.get("password").toString())) {
+      return ResponseEntity.status(HttpStatus.NOT_FOUND).body(responseMessage);
+    }
+    responseMessage.setErrorCode(ErrorCode.SUCCESS);
+    return ResponseEntity.status(HttpStatus.OK).body(responseMessage);
+  }
+
+  @PostMapping("/forgot-password")
+  public ResponseEntity<ResponAPI<DtoResResetPassword>> forgotPassword(@RequestBody Map<String, Object> req) {
+    ResponAPI<DtoResResetPassword> responseMessage = new ResponAPI<>();
+    if(!service.forgetPassword(responseMessage, req.get("email").toString(), "http://localhost:8080/")) {
+      return ResponseEntity.status(HttpStatus.NOT_FOUND).body(responseMessage);
+    }
+    responseMessage.setErrorCode(ErrorCode.SUCCESS);
+    return ResponseEntity.status(HttpStatus.OK).body(responseMessage);
   }
 
 }

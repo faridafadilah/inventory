@@ -28,4 +28,7 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
     "WHERE a.id = :userId "+
     "ORDER BY a.id", nativeQuery = true) 
   DtoUserRole getUserRole(Long userId);
+
+  Optional<User> findByEmail(String email);
+  Optional<User> findUsersByResetToken(String token);
 }

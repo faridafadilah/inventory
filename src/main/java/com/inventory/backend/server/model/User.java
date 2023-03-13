@@ -1,5 +1,6 @@
 package com.inventory.backend.server.model;
 
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -18,6 +19,8 @@ import javax.persistence.UniqueConstraint;
 import javax.validation.constraints.Email;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Size;
+
+import com.fasterxml.jackson.annotation.JsonBackReference;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -78,4 +81,13 @@ public class User {
 
   @OneToMany(mappedBy = "recipient")
   private List<Chat> recipientMessageList;
+
+  @JsonBackReference
+  public String resetToken;
+
+  public Date resetTokenDate;
+
+  @JsonBackReference
+  public String token;
+
 }
